@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CPSC 4870 - Digitizing Museum Collections</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.3.0/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quaternion@1.5.1/quaternion.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/numeric@1.2.6/numeric-1.2.6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+              "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+              "three/": "https://unpkg.com/three@0.160.0/"
+            }
+        }
+    </script>
+</head>
+<body>
+<script type="module">
+    import {ThreeEngine, get_default_lil_gui, refresh_displays} from "./js/utils/utils_three.js";
+    import * as THREE from "three";
+    import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
+
+    let settings = {
+        cam1: true,
+        cam2: false,
+        cam3: false,
+        cam_x: 0,
+        cam_y: -2,
+        cam_z: 0,
+        objnum: "YPM.EDUC.003043",
+        objmat: "Fluorite"
+    }
+
+    let actions = {
+        cam1: function() {
+            settings.cam1 = true;
+            settings.cam2 = false;
+            settings.cam3 = false;
+            settings.cam_x = 0;
+            settings.cam_y = -3;
+            settings.cam_z = 0;
+            settings.objnum = "YPM.EDUC.003043";
+            settings.objmat = "Fluorite";
+            //reset_displays(gui);
+        },
+        cam2: function() {
+            settings.cam1 = false;
+            settings.cam2 = true;
+            settings.cam3 = false;
+            settings.cam_x = 8;
+            settings.cam_y = -3;
+            settings.cam_z = 0;
+            settings.objnum = "YPM.EDUC.004001";
+            settings.objmat = "Actinolite & muscovite";
+        },
+        cam3: function() {
+            settings.cam1 = false;
+            settings.cam2 = false;
+            settings.cam3 = true;
+            settings.cam_x = 16;
+            settings.cam_y = -3;
+            settings.cam_z = 0;
+            settings.objnum = "YPM.EDUC.004899";
+            settings.objmat = "Quartz var. amethyst";
+        }
+    };
+
+    let gui = get_default_lil_gui();
+    gui.add(actions, 'cam1').name('Go to Mineral 1');
+    gui.add(actions, 'cam2').name('Go to Mineral 2');
+    gui.add(actions, 'cam3').name('Go to Mineral 3');
+    gui.add(settings, 'objnum').name('Object').disable();
+    gui.add(settings, 'objmat').name('Description').disable();
+
+    let engine = ThreeEngine.new_default_3d();
+
+    //add background - based on (Yaman, 2025)
+    engine.scene.background = new THREE.Color(0x000000);
+
+    //add light - based on (Yaman, 2025)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+    engine.scene.add(hemiLight);
+
+    engine.camera.position.set(settings.cam_x, settings.cam_y, settings.cam_z);
+
+    const loader = new GLTFLoader();
+    //load minerals - based on (Yaman, 2025)
+
+    let model1;
+    loader.load(
+        '/models/ypm.educ.003043/ypm.educ.003043.glb',
+        (gltf) => {
+            model1 = gltf.scene;
+            model1.scale.set(1/20, 1/20, 1/20);
+            model1.position.set(0, 0, 0);
+            engine.scene.add(model1);
+        },
+        (progress) => {
+            console.log((progress.loaded / progress.total) * 100 + '% loaded');
+        },
+        (error) => {
+            console.error('Failed to load model:', error);
+        }
+    );
+
+    let model2;
+    loader.load(
+        '/models/ypm.educ.004001/ypm.educ.004001.glb',
+        (gltf) => {
+            model2 = gltf.scene;
+            model2.scale.set(1/20, 1/20, 1/20);
+            model2.position.set(8, 0, 0);
+            engine.scene.add(model2);
+        },
+        (progress) => {
+            console.log((progress.loaded / progress.total) * 100 + '% loaded');
+        },
+        (error) => {
+            console.error('Failed to load model:', error);
+        }
+    );
+
+    let model3;
+    loader.load(
+        '/models/ypm.educ.004899/ypm.educ.004899.glb',
+        (gltf) => {
+            model3 = gltf.scene;
+            model3.scale.set(1/20, 1/20, 1/20);
+            model3.position.set(16, 0, 0);
+            engine.scene.add(model3);
+        },
+        (progress) => {
+            console.log((progress.loaded / progress.total) * 100 + '% loaded');
+        },
+        (error) => {
+            console.error('Failed to load model:', error);
+        }
+    );
+
+    engine.animation_loop( ()  => {
+        engine.camera.position.set(settings.cam_x, settings.cam_y, settings.cam_z);
+        //model 1 - https://stackoverflow.com/questions/52017641/how-to-rotate-a-gltf-model-in-threejs
+        if (model1 && settings.cam1) {
+            engine.controls.target.set(0,0,0);//https://stackoverflow.com/questions/10325095/threejs-camera-lookat-has-no-effect-is-there-something-im-doing-wrong
+            engine.camera.lookAt(0, 0, 0); //https://stackoverflow.com/questions/10325095/threejs-camera-lookat-has-no-effect-is-there-something-im-doing-wrong
+            model1.rotation.x += 0.005;
+            model1.rotation.z += 0.01
+        }
+
+        if (model2 && settings.cam2) {
+            engine.controls.target.set(8,0,0);
+            engine.camera.lookAt(8, 0, 0);
+            model2.rotation.x += 0.005;
+            model2.rotation.z += 0.01
+        }
+
+        if (model3 && settings.cam3) {
+            engine.controls.target.set(16,0,0);
+            engine.camera.lookAt(16, 0, 0);
+            model3.rotation.x += 0.005;
+            model3.rotation.z += 0.01
+        }
+
+        refresh_displays(gui); //update at each frame
+
+
+    });
+
+</script>
+</body>
+</html>
